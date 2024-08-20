@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mohsen Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        #chat-container {
+            display: none;
+            flex-direction: column;
+            height: 80vh;
+            width: 90vw;
+            max-width: 800px;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        #chat-header {
+            background-color: #e63946;
+            color: #ffffff;
+            padding: 10px;
+            text-align: center;
+            font-size: 24px;
+        }
+        #chat-box {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: #ffffff;
+        }
+        #input-container {
+            display: flex;
+            align-items: center;
+            border-top: 1px solid #e63946;
+            background-color: #ffffff;
+            padding: 10px;
+        }
+        #input-container input[type="text"],
+        #input-container input[type="file"] {
+            flex: 1;
+            margin-right: 10px;
+            padding: 10px;
+            border: 1px solid #e63946;
+            border-radius: 5px;
+        }
+        #input-container button {
+            background-color: #f1faee;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            color: #e63946;
+        }
+        #input-container button:hover {
+            background-color: #e63946;
+            color: #ffffff;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .message.user {
+            background-color: #a8dadc;
+            text-align: right;
+        }
+        .message.other {
+            background-color: #ffadad;
+            text-align: left;
+        }
+        .message img, .message video {
+            max-width: 100%;
+            max-height: 200px;
+            display: block;
+            margin: 10px 0;
+        }
+        .message audio {
+            display: block;
+            margin: 10px 0;
+        }
+        #name-prompt {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        #name-prompt input {
+            padding: 10px;
+            border: 1px solid #e63946;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            width: 80%;
+            max-width: 300px;
+        }
+        #name-prompt button {
+            background-color: #e63946;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #name-prompt button:hover {
+            background-color: #d62839;
+        }
+    </style>
+</head>
+<body>
+    <div id="name-prompt">
+        <h1>Welcome to Mohsen Chat</h1>
+        <input type="text" id="username" placeholder="Enter your name" />
+        <button onclick="startChat()">Start Chat</button>
+    </div>
+
+    <div id="chat-container">
+        <div id="chat-header">Mohsen Chat</div>
+        <div id="chat-box"></div>
+        <div id="input-container">
+            <input type="text" id="message-input" placeholder="Type your message" />
+            <input type="file" id="file-input" />
+            <button onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const namePrompt = document.getElementById('name-prompt');
+        const chatBox = document.getElementById('chat-box');
+        const messageInput = document.getElementById('message-input');
+        const fileInput = document.getElementById('file-input');
+        const usernameInput = document.getElementById('username');
+
+        let username = '';
+
+        function startChat() {
+            username = usernameInput.value.trim();
+            if (username) {
+                namePrompt.style.display = 'none';
+                chatContainer.style.display = 'flex';
+                loadMessages();
+            } else {
+                alert('Please enter your name');
+            }
+        }
+
+        function readFileAsBase64(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                callback(event.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            const file = fileInput.files[0];
+            if (messageText || file) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message user';
+                
+                if (messageText) {
+                    messageDiv.innerHTML = `<strong>${username}</strong>: ${messageText}`;
+                }
+                
+                if (file) {
+                    readFileAsBase64(file, (fileData) => {
+                        let fileHTML = '';
+                        if (file.type.startsWith('image/')) {
+                            fileHTML = `<img src="${fileData}" />`;
+                        } else if (file.type.startsWith('video/')) {
+                            fileHTML = `<video controls src="${fileData}"></video>`;
+                        } else if (file.type.startsWith('audio/')) {
+                            fileHTML = `<audio controls src="${fileData}"></audio>`;
+                        }
+                        messageDiv.innerHTML += fileHTML;
+                        saveMessage(username, messageText, fileData, file.type);
+                        chatBox.appendChild(messageDiv);
+                        messageInput.value = '';
+                        fileInput.value = '';
+                        chatBox.scrollTop = chatBox.scrollHeight;
+                    });
+                } else {
+                    saveMessage(username, messageText, null, null);
+                    chatBox.appendChild(messageDiv);
+                    messageInput.value = '';
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+            }
+        }
+
+        function saveMessage(user, text, fileData, fileType) {
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            messages.push({ user, text, fileData, fileType });
+            localStorage.setItem('messages', JSON.stringify(messages));
+        }
+
+        function loadMessages() {
+            const messages = JSON.parse(localStorage.getItem('messages')) || [];
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message user';
+                
+                if (msg.text) {
+                    messageDiv.innerHTML = `<strong>${msg.user}</strong>: ${msg.text}`;
+                }
+                
+                if (msg.fileData) {
+                    let fileHTML = '';
+                    if (msg.fileType.startsWith('image/')) {
+                        fileHTML = `<img src="${msg.fileData}" />`;
+                    } else if (msg.fileType.startsWith('video/')) {
+                        fileHTML = `<video controls src="${msg.fileData}"></video>`;
+                    } else if (msg.fileType.startsWith('audio/')) {
+                        fileHTML = `<audio controls src="${msg.fileData}"></audio>`;
+                    }
+                    messageDiv.innerHTML += fileHTML;
+                }
+
+                chatBox.appendChild(messageDiv);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
